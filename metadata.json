@@ -1,0 +1,7 @@
+{
+  "name": "MediSync",
+  "description": "A full-stack healthcare platform for hospital management, emergency assistance, and AI-driven hospital recommendations.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}

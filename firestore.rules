@@ -1,0 +1,138 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: users
+    // Fields: uid, name, email, role, hospitalId, hospitalName, familyEmail, familyPhone, createdAt
+    //
+    // Collection: hospitals
+    // Fields: name, location, area, facilities, beds, icu, oxygen, blood, rating, reviewCount, lat, lng
+    //
+    // Collection: doctors
+    // Fields: name, specialization, hospitalId, hospitalName, experience, availability
+    //
+    // Collection: patientRecords
+    // Fields: patientId, patientName, hospitalId, status, reports, lastUpdated
+    //
+    // Collection: reviews
+    // Fields: patientId, patientName, hospitalId, rating, comment, timestamp
+    //
+    // Collection: appointments
+    // Fields: patientId, doctorId, doctorName, hospitalId, date, status
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        getUserData().role == 'admin' ||
+        request.auth.token.email == "pujakonidela23@gmail.com"
+      );
+    }
+
+    function isWorker() {
+      return isAuthenticated() && getUserData().role == 'worker';
+    }
+
+    function isPatient() {
+      return isAuthenticated() && getUserData().role == 'patient';
+    }
+
+    function isHospitalWorker(hospitalId) {
+      return isWorker() && getUserData().hospitalId == hospitalId;
+    }
+
+    // Validation Functions
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'name', 'email', 'role']) &&
+             data.uid is string && data.name is string && data.email is string &&
+             data.role in ['admin', 'worker', 'patient'];
+    }
+
+    function isValidHospital(data) {
+      return data.keys().hasAll(['name', 'location']) &&
+             data.name is string && data.location is string;
+    }
+
+    function isValidDoctor(data) {
+      return data.keys().hasAll(['name', 'specialization', 'hospitalId']) &&
+             data.name is string && data.specialization is string && data.hospitalId is string;
+    }
+
+    // Rules
+    match /users/{uid} {
+      // Only allow user to read their own profile, or admin to read any profile
+      allow read: if isAuthenticated() && (isOwner(uid) || isAdmin());
+      allow create: if isAuthenticated() && isOwner(uid) && isValidUser(request.resource.data);
+      allow update: if isAuthenticated() && (isOwner(uid) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /hospitals/{hospitalId} {
+      allow read: if true; // Publicly readable for patient search
+      allow create: if isAdmin();
+      allow update: if isAdmin() || isHospitalWorker(hospitalId);
+      allow delete: if isAdmin();
+    }
+
+    match /doctors/{doctorId} {
+      allow read: if true;
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /patient_records/{recordId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() || 
+        isWorker() || 
+        request.auth.uid == resource.data.patientId
+      );
+      allow create: if isWorker() || isAdmin();
+      allow update: if isWorker() || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && (isAdmin() || getUserData().role == resource.data.role);
+      allow create: if isAuthenticated(); // Allow workers/admins to create notifications
+      allow delete: if isAdmin();
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isPatient();
+      allow update: if isAdmin() || (isPatient() && request.auth.uid == resource.data.patientId);
+      allow delete: if isAdmin();
+    }
+
+    match /appointments/{appointmentId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() || 
+        isWorker() || 
+        request.auth.uid == resource.data.patientId
+      );
+      allow create: if isPatient();
+      allow update: if isAuthenticated() && (
+        isAdmin() || 
+        isWorker() || 
+        request.auth.uid == resource.data.patientId
+      );
+      allow delete: if isAdmin();
+    }
+  }
+}

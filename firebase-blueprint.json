@@ -1,0 +1,118 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "System user with role-based access.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["admin", "worker", "patient"] },
+        "hospitalId": { "type": "string", "description": "Associated hospital for workers" },
+        "hospitalName": { "type": "string", "description": "Associated hospital name for workers" },
+        "familyEmail": { "type": "string", "format": "email" },
+        "familyPhone": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "email", "role"]
+    },
+    "Hospital": {
+      "title": "Hospital",
+      "description": "Healthcare facility details and resources.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "location": { "type": "string" },
+        "area": { "type": "string" },
+        "facilities": { "type": "array", "items": { "type": "string" } },
+        "beds": { "type": "number" },
+        "icu": { "type": "number" },
+        "oxygen": { "type": "number" },
+        "blood": { "type": "object", "description": "Map of blood group and availability" },
+        "rating": { "type": "number" },
+        "reviewCount": { "type": "number" },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" }
+      },
+      "required": ["name", "location"]
+    },
+    "Doctor": {
+      "title": "Doctor",
+      "description": "Medical professional details.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "specialization": { "type": "string" },
+        "hospitalId": { "type": "string" },
+        "hospitalName": { "type": "string" },
+        "experience": { "type": "number" },
+        "availability": { "type": "boolean" }
+      },
+      "required": ["name", "specialization", "hospitalId"]
+    },
+    "PatientRecord": {
+      "title": "PatientRecord",
+      "description": "Real-time patient status and reports.",
+      "type": "object",
+      "properties": {
+        "patientId": { "type": "string" },
+        "patientName": { "type": "string" },
+        "hospitalId": { "type": "string" },
+        "status": { "type": "string", "enum": ["critical", "moderate", "normal"] },
+        "reports": { "type": "array", "items": { "type": "object" } },
+        "lastUpdated": { "type": "string", "format": "date-time" }
+      },
+      "required": ["patientId", "hospitalId", "status"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Patient feedback for hospitals.",
+      "type": "object",
+      "properties": {
+        "patientId": { "type": "string" },
+        "patientName": { "type": "string" },
+        "hospitalId": { "type": "string" },
+        "rating": { "type": "number" },
+        "comment": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["patientId", "hospitalId", "rating"]
+    },
+    "Appointment": {
+      "title": "Appointment",
+      "description": "Doctor-patient booking.",
+      "type": "object",
+      "properties": {
+        "patientId": { "type": "string" },
+        "doctorId": { "type": "string" },
+        "doctorName": { "type": "string" },
+        "hospitalId": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "completed", "cancelled"] }
+      },
+      "required": ["patientId", "doctorId", "hospitalId", "date"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "System alerts and notifications.",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string" },
+        "type": { "type": "string", "enum": ["alert", "success", "info"] },
+        "role": { "type": "string", "enum": ["admin", "worker", "patient"] },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["text", "type", "role", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": { "schema": "User", "description": "User profiles" },
+    "/hospitals/{hospitalId}": { "schema": "Hospital", "description": "Hospital details" },
+    "/doctors/{doctorId}": { "schema": "Doctor", "description": "Doctor details" },
+    "/patient_records/{recordId}": { "schema": "PatientRecord", "description": "Patient status and reports" },
+    "/reviews/{reviewId}": { "schema": "Review", "description": "Hospital reviews" },
+    "/appointments/{appointmentId}": { "schema": "Appointment", "description": "Doctor appointments" },
+    "/notifications/{notificationId}": { "schema": "Notification", "description": "System notifications" }
+  }
+}
